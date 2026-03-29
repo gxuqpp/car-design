@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>膜片弹簧弹性特性分析工具 · 汽车设计第2章（📱移动端兼容）</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+    background: #f0f2f5;
+    color: #1e2a35;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  header {
+    background: #1a2744;
+    color: #fff;
+    padding: 14px 28px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; font-weight: 500; }
+  header span { font-size: 13px; color: #b0bec5; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab {
+    padding: 7px 16px; border-radius: 8px; border: 1px solid #c8d0db;
+    background: #fff; cursor: pointer; font-size: 13px; color: #546070;
+    transition: all 0.15s; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .tab:hover { border-color: #378ADD; color: #378ADD; }
+  .tab.active { background: #e6f1fb; color: #185fa5; border-color: #378ADD; font-weight: 500; }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Card */
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #dde3ec;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+
+  /* Controls */
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-bottom: 16px; }
+  .ctrl-row { display: flex; align-items: center; gap: 10px; min-width: 260px; flex: 1; }
+  .ctrl-label { font-size: 13px; color: #546070; min-width: 100px; }
+  .ctrl-row input[type=range] {
+    flex: 1; height: 4px; accent-color: #378ADD; cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #dde3ec;
+    border-radius: 2px;
+    touch-action: none;
+  }
+  .ctrl-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #378ADD;
+    cursor: pointer;
+  }
+  .ctrl-row input[type=range]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #378ADD;
+    cursor: pointer;
+    border: none;
+  }
+  .ctrl-val {
+    font-size: 13px; font-weight: 500; min-width: 52px;
+    text-align: right; color: #1e2a35; font-variant-numeric: tabular-nums;
+  }
+  .ctrl-row select {
+    flex: 1; padding: 5px 8px; border: 1px solid #c8d0db; border-radius: 6px;
+    font-size: 13px; color: #1e2a35; background: #fff; cursor: pointer;
+  }
+
+  /* Info box */
+  .infobox {
+    border-left: 3px solid #378ADD;
+    background: #e6f1fb;
+    color: #0c447c;
+    border-radius: 0 8px 8px 0;
+    padding: 8px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-top: 6px;
+  }
+  .infobox.warn { border-color: #E24B4A; background: #fcebeb; color: #791f1f; }
+  .infobox.ok   { border-color: #639922; background: #eaf3de; color: #27500a; }
+
+  /* Canvas wrapper */
+  .canvas-wrap { 
+    position: relative; 
+    width: 100%; 
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  canvas { 
+    display: block; 
+    width: 100%; 
+    border-radius: 8px;
+    touch-action: pan-y;
+  }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: #546070; margin-bottom: 10px; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 22px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Annotation bar */
+  .annotation {
+    text-align: center; font-size: 12px; color: #546070;
+    margin-top: 8px; min-height: 18px;
+  }
+
+  /* State badges */
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+  }
+  .badge-engage   { background: #d6e8f2; color: #1b6b80; }
+  .badge-disengage { background: #fae8da; color: #854f0b; }
+
+  /* Formula display */
+  .formula-block {
+    background: #f5f6f8; border-radius: 8px;
+    padding: 12px 16px; margin: 10px 0;
+    font-size: 13px; line-height: 2;
+    border-left: 3px solid #b0bec5;
+  }
+  .formula-block .hi { color: #185fa5; font-weight: 500; }
+  .formula-block .hi2 { color: #a32d2d; font-weight: 500; }
+  .formula-block .hi3 { color: #3b6d11; font-weight: 500; }
+
+  /* Grid layout for panel 3 */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Force diagram label */
+  .force-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  .force-table th { background: #f0f2f5; padding: 6px 10px; text-align: left; font-weight: 500; border-bottom: 1px solid #dde3ec; }
+  .force-table td { padding: 7px 10px; border-bottom: 1px solid #f0f2f5; }
+  .force-table tr:last-child td { border-bottom: none; }
+
+  footer {
+    text-align: center; font-size: 12px; color: #b0bec5;
+    padding: 20px; margin-top: 8px;
+  }
+
+  /* 移动端优化 */
+  @media (max-width: 700px) {
+    header { padding: 12px 16px; }
+    header h1 { font-size: 16px; }
+    header span { font-size: 12px; }
+    .container { padding: 16px 12px 32px; }
+    .card { padding: 16px; }
+    .tabs { gap: 6px; }
+    .tab { padding: 6px 12px; font-size: 12px; }
+    .ctrl-row { min-width: 100%; }
+    .ctrl-label { min-width: 80px; font-size: 12px; }
+    .ctrl-val { font-size: 12px; }
+    .infobox { font-size: 11px; padding: 6px 10px; }
+    .legend { font-size: 11px; gap: 8px; }
+    .annotation { font-size: 11px; }
+    .force-table { font-size: 12px; }
+    .force-table th, .force-table td { padding: 5px 8px; }
+  }
+user-select: none
+</style>
+</head>
+<body>
+
+<header>
+  <h1>膜片弹簧弹性特性分析工具</h1>
+  <span>《汽车设计》第5版 · 第二章 · 式(2-21) &amp; 式(2-24) · 完全离线版</span>
+</header>
+
+<div class="container">
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('curve')">① 弹性特性曲线</button>
+    <button class="tab" onclick="switchTab('geom')">② 几何参数图解</button>
+    <button class="tab" onclick="switchTab('forces')">③ 压紧与分离受力</button>
+    <button class="tab" onclick="switchTab('stiffness')">④ 刚度分析</button>
+  </div>
+
+  <!-- ═══ PANEL 1: 弹性特性曲线 ═══ -->
+  <div id="panel-curve" class="panel active">
+    <div class="card">
+      <div class="controls">
+        <div class="ctrl-row">
+          <span class="ctrl-label">H/h =</span>
+          <input type="range" min="0.5" max="3.5" step="0.05" value="1.6" id="p1-hh" oninput="p1Update()">
+          <span class="ctrl-val" id="p1-hh-v">1.60</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">R/r =</span>
+          <input type="range" min="1.2" max="2.0" step="0.05" value="1.60" id="p1-rr" oninput="p1Update()">
+          <span class="ctrl-val" id="p1-rr-v">1.60</span>
+        </div>
+      </div>
+      <div id="p1-info" class="infobox"></div>
+    </div>
+
+    <div class="card">
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#378ADD"></span>F₁ 压盘压紧力（式 2-21）</span>
+        <span><span class="legend-dot" style="background:#E24B4A; border-top: 2px dashed #E24B4A; height:0; margin-top:1px;"></span>F₂ 踏板分离力（式 2-24）</span>
+        <span><span class="legend-dot" style="background:rgba(226,75,74,0.18); border:1px solid #E24B4A; width:18px; height:12px; border-radius:3px;"></span>负刚度区</span>
+      </div>
+      <div class="canvas-wrap"><canvas id="c-curve" height="320"></canvas></div>
+      <div class="annotation" id="p1-ann"></div>
+    </div>
+
+    <div class="card formula-block">
+      式(2-21)：<span class="hi">F₁ = f(λ₁)</span> =
+      <span class="hi">πEhλ₁ · ln(R/r) / [6(1−μ²)(R₁−r₁)²]</span>
+      · [(H − λ₁·(R−r)/(R₁−r₁)) · (H − λ₁/2·(R−r)/(R₁−r₁)) + h²]<br>
+      式(2-24)：<span class="hi2">F₂ = f(λ₂)</span> =
+      <span class="hi2">πEhλ₂ · ln(R/r) / [6(1−μ²)(r₁−r_f)²]</span>
+      · [(H − λ₂·(R−r)/(r₁−r_f)) · (H − λ₂/2·(R−r)/(r₁−r_f)) + h²]<br>
+      杠杆关系（式2-22、2-23）：λ₂ = (r₁−r_f)/(R₁−r₁)·λ₁，F₂ = <span style="color:#a32d2d;font-weight:500">(R₁−r₁)/(r₁−r_f)</span>·F₁
+      <span class="hi3">　← 式(2-22)(2-23)</span>
+    </div>
+  </div>
+
+  <!-- ═══ PANEL 2: 几何参数图解 ═══ -->
+  <div id="panel-geom" class="panel">
+    <div class="card">
+      <div class="controls">
+        <div class="ctrl-row">
+          <span class="ctrl-label">H 内锥高度</span>
+          <input type="range" min="2" max="12" step="0.5" value="4.8" id="p2-H" oninput="p2Update()">
+          <span class="ctrl-val" id="p2-H-v">4.8 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">h 钢板厚度</span>
+          <input type="range" min="1.0" max="5.0" step="0.1" value="3.0" id="p2-h" oninput="p2Update()">
+          <span class="ctrl-val" id="p2-h-v">3.0 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">R 外缘半径</span>
+          <input type="range" min="60" max="130" step="2" value="90" id="p2-R" oninput="p2Update()">
+          <span class="ctrl-val" id="p2-R-v">90 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">r 小端半径</span>
+          <input type="range" min="20" max="80" step="2" value="56" id="p2-r" oninput="p2Update()">
+          <span class="ctrl-val" id="p2-r-v">56 mm</span>
+        </div>
+      </div>
+      <div id="p2-info" class="infobox"></div>
+    </div>
+    <div class="card">
+      <div class="canvas-wrap"><canvas id="c-geom" height="360"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ═══ PANEL 3: 压紧与分离受力 ═══ -->
+  <div id="panel-forces" class="panel">
+    <div class="card">
+      <p style="font-size:13px; font-weight:500; color:#546070; margin-bottom:12px;">
+        几何参数输入（与式2-21符号一致）
+        <span style="font-size:11px; font-weight:400; color:#aaa; margin-left:8px;">修改参数后自动更新计算结果</span>
+      </p>
+      <div class="controls" style="row-gap:8px;">
+        <div class="ctrl-row">
+          <span class="ctrl-label" title="碟簧自由状态内锥高度 H（mm）">H &nbsp;内锥高度</span>
+          <input type="range" min="1.0" max="12.0" step="0.1" value="4.8" id="p3-H" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-H-v">4.8 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label" title="碟簧板厚 h（mm）">h &nbsp;板厚</span>
+          <input type="range" min="0.5" max="6.0" step="0.1" value="3.0" id="p3-h" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-h-v">3.0 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label" title="碟簧小端半径 r（mm）">r &nbsp;小端半径</span>
+          <input type="range" min="15" max="80" step="1" value="56" id="p3-r" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-r-v">56 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label" title="碟簧大端半径 R（mm）">R &nbsp;大端半径</span>
+          <input type="range" min="50" max="200" step="1" value="90" id="p3-R" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-R-v">90 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label" title="支承环大径 R₁（mm）">R₁ 支承环大径</span>
+          <input type="range" min="40" max="180" step="1" value="82" id="p3-R1" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-R1-v">82 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label" title="支承环小径 r₁（mm）">r₁ 支承环小径</span>
+          <input type="range" min="25" max="120" step="1" value="54" id="p3-r1" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-r1-v">54 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label" title="分离轴承接触半径 r_f（mm）">r_f 分离轴承半径</span>
+          <input type="range" min="10" max="80" step="1" value="30" id="p3-rf" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-rf-v">30 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label" title="碟簧小端到外端无载时半径 r₀（仅图示参考）">r₀ &nbsp;分离指根部</span>
+          <input type="range" min="10" max="80" step="1" value="25" id="p3-r0" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-r0-v">25 mm</span>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">工作状态</span>
+          <select id="p3-state" onchange="p3Update()" style="flex:1; padding:5px 8px; border:1px solid #c8d0db; border-radius:6px; font-size:13px;">
+            <option value="engage">接合状态（离合器压紧）</option>
+            <option value="disengage">分离状态（踩下踏板）</option>
+          </select>
+        </div>
+        <div class="ctrl-row">
+          <span class="ctrl-label">压盘变形 λ₁</span>
+          <input type="range" min="0" max="15" step="0.05" value="2.5" id="p3-lam" oninput="p3Update()">
+          <span class="ctrl-val" id="p3-lam-v">2.5 mm</span>
+        </div>
+      </div>
+      <div id="p3-param-warn" class="infobox warn" style="display:none; margin-top:8px;"></div>
+      <div id="p3-info" class="infobox" style="margin-top:8px;"></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="canvas-wrap"><canvas id="c-force" height="340"></canvas></div>
+      </div>
+      <div class="card">
+        <p style="font-size:13px; font-weight:500; margin-bottom:10px; color:#546070;">受力计算结果</p>
+        <table class="force-table" id="p3-table">
+          <tr><th>参数</th><th>数值</th></tr>
+        </table>
+        <div style="margin-top:14px;">
+          <div class="formula-block" style="font-size:12px; line-height:1.9;">
+            <b>杠杆原理（式2-22、2-23）</b><br>
+            λ₂ = <span class="hi">(r₁−r_f)/(R₁−r₁)</span> · λ₁
+            &nbsp;&nbsp;<span style="color:#aaa">（分离指行程与压盘变形的运动关系）</span><br>
+            F₂ = <span class="hi2">(R₁−r₁)/(r₁−r_f)</span> · F₁
+            &nbsp;&nbsp;<span id="p3-force-note" style="color:#aaa">（计算中...）</span><br><br>
+            <b>当前参数计算结果</b><br>
+            外侧臂长 R₁−r₁ = <span class="hi" id="p3-arm-outer">—</span> mm<br>
+            内侧臂长 r₁−r_f = <span class="hi2" id="p3-arm-inner">—</span> mm<br>
+            运动比 λ₂/λ₁ = <span id="p3-ratio-lam" style="font-weight:500;color:#3b6d11">—</span><br>
+            力放大比 F₂/F₁ = <span id="p3-ratio-f" style="font-weight:500;color:#a32d2d">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PANEL 4: 刚度分析 ═══ -->
+  <div id="panel-stiffness" class="panel">
+    <div class="card">
+      <div class="controls">
+        <div class="ctrl-row">
+          <span class="ctrl-label">H/h =</span>
+          <input type="range" min="0.5" max="3.5" step="0.05" value="1.6" id="p4-hh" oninput="p4Update()">
+          <span class="ctrl-val" id="p4-hh-v">1.60</span>
+        </div>
+      </div>
+      <div id="p4-info" class="infobox"></div>
+    </div>
+    <div class="card">
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#378ADD"></span>F₁ 弹力</span>
+        <span><span class="legend-dot" style="background:#639922"></span>刚度 k = dF/dλ（N/mm）</span>
+        <span><span class="legend-dot" style="background:rgba(226,75,74,0.18); border:1px solid #E24B4A; width:18px; height:12px; border-radius:3px;"></span>负刚度区（k &lt; 0）</span>
+      </div>
+      <div class="canvas-wrap"><canvas id="c-stiff" height="320"></canvas></div>
+      <div class="annotation" id="p4-ann"></div>
+    </div>
+  </div>
+
+</div>
+
+<footer>膜片弹簧弹性特性分析工具 · 完全离线版 · 双击 HTML 文件即可在任何浏览器中打开 · 无需网络连接</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// 核心物理公式
+// ─────────────────────────────────────────────
+const E = 206000, MU = 0.3;  // 钢的弹性模量和泊松比
+
+// 式(2-21): F₁ = f(λ₁)，支承环处压紧力
+function calcF1(lam1, H, h, R, r, R1, r1) {
+  if (lam1 <= 0) return 0;
+  const K = Math.PI * E * h * Math.log(R / r) / (6 * (1 - MU * MU) * Math.pow(R1 - r1, 2));
+  const beta = (R - r) / (R1 - r1);
+  const A = H - lam1 * beta;
+  const B = H - (lam1 / 2) * beta;
+  return K * lam1 * (A * B + h * h);
+}
+
+// 式(2-24): F₂ = f(λ₂)，分离轴承处分离力（与式2-21结构相同但以r1-rf为基准）
+function calcF2(lam2, H, h, R, r, r1, rf) {
+  if (lam2 <= 0) return 0;
+  const span = r1 - rf;
+  const K = Math.PI * E * h * Math.log(R / r) / (6 * (1 - MU * MU) * Math.pow(span, 2));
+  const beta = (R - r) / span;
+  const A = H - lam2 * beta;
+  const B = H - (lam2 / 2) * beta;
+  return K * lam2 * (A * B + h * h);
+}
+
+// 默认几何参数（典型乘用车）
+const DEF = { H:4.8, h:3.0, R:90, r:56, R1:82, r1:54, rf:30 };
+
+// 生成 F1/F2 曲线数据（N点）
+function buildCurves(hh, rr, N=150) {
+  const h = 3.0, H = hh * h;
+  const R = 90, r = R / rr;
+  const { R1, r1, rf } = DEF;
+  const maxLam = H * 2.3;
+  const xs=[], f1s=[], f2s=[];
+  for (let i=0; i<=N; i++) {
+    const lam1 = (i/N) * maxLam;
+    const lam2 = lam1 * (r1 - rf) / (R1 - r1);
+    xs.push(lam1);
+    f1s.push(calcF1(lam1, H, h, R, r, R1, r1));
+    f2s.push(calcF2(lam2, H, h, R, r, r1, rf));
+  }
+  return { xs, f1s, f2s, H, h, R, r };
+}
+
+// ─────────────────────────────────────────────
+// 通用 Canvas 绘图工具
+// ─────────────────────────────────────────────
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const W = Math.floor(rect.width || 600);
+  const H = parseInt(canvas.getAttribute('height') || 320);
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, W, H };
+}
+
+// 绘制坐标轴 + 网格，返回 {toX, toY, pad}
+function drawAxes(ctx, W, H, xMin, xMax, yMin, yMax, opts={}) {
+  const pad = opts.pad || { l:52, r:20, t:24, b:44 };
+  const cW = W - pad.l - pad.r;
+  const cH = H - pad.t - pad.b;
+
+  function toX(v) { return pad.l + (v - xMin) / (xMax - xMin) * cW; }
+  function toY(v) { return pad.t + (1 - (v - yMin) / (yMax - yMin)) * cH; }
+
+  // 背景
+  ctx.fillStyle = '#fafbfc';
+  ctx.fillRect(pad.l, pad.t, cW, cH);
+
+  // 网格
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)'; ctx.lineWidth = 0.5;
+  const xTicks = opts.xTicks || 6, yTicks = opts.yTicks || 5;
+  for (let i=0; i<=xTicks; i++) {
+    const x = pad.l + i/xTicks * cW;
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t+cH); ctx.stroke();
+  }
+  for (let i=0; i<=yTicks; i++) {
+    const y = pad.t + i/yTicks * cH;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+cW, y); ctx.stroke();
+  }
+
+  // 零线高亮
+  if (yMin < 0 && yMax > 0) {
+    const y0 = toY(0);
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(pad.l, y0); ctx.lineTo(pad.l+cW, y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 轴线
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+  ctx.strokeRect(pad.l, pad.t, cW, cH);
+
+  // X 轴刻度 + 标签
+  ctx.fillStyle = '#666'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  for (let i=0; i<=xTicks; i++) {
+    const v = xMin + i/xTicks * (xMax - xMin);
+    ctx.fillText(v.toFixed(1), pad.l + i/xTicks*cW, pad.t + cH + 16);
+  }
+  if (opts.xLabel) {
+    ctx.fillStyle = '#888'; ctx.font = '12px sans-serif';
+    ctx.fillText(opts.xLabel, pad.l + cW/2, H - 4);
+  }
+
+  // Y 轴刻度 + 标签
+  ctx.textAlign = 'right';
+  for (let i=0; i<=yTicks; i++) {
+    const v = yMin + i/yTicks * (yMax - yMin);
+    const y = toY(v);
+    const label = Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(0);
+    ctx.fillStyle = '#666'; ctx.font = '11px sans-serif';
+    ctx.fillText(label, pad.l - 4, y + 4);
+  }
+  if (opts.yLabel) {
+    ctx.save();
+    ctx.translate(13, pad.t + cH/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillStyle = '#888'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(opts.yLabel, 0, 0);
+    ctx.restore();
+  }
+
+  return { toX, toY, pad, cW, cH };
+}
+
+// 绘制折线
+function drawLine(ctx, toX, toY, xs, ys, color, width=2, dash=[]) {
+  if (xs.length === 0) return;
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  ctx.moveTo(toX(xs[0]), toY(ys[0]));
+  for (let i=1; i<xs.length; i++) ctx.lineTo(toX(xs[i]), toY(ys[i]));
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// 负刚度区背景
+function drawNegRegion(ctx, toX, toY, pad, xs, f1s, cH) {
+  let inNeg = false, nx0 = 0;
+  for (let i=1; i<f1s.length-1; i++) {
+    const slope = f1s[i+1] - f1s[i-1];
+    if (!inNeg && slope < 0) { inNeg = true; nx0 = toX(xs[i]); }
+    if (inNeg && slope >= 0) {
+      const nx1 = toX(xs[i]);
+      ctx.fillStyle = 'rgba(226,75,74,0.13)';
+      ctx.fillRect(nx0, pad.t, nx1-nx0, cH);
+      inNeg = false;
+    }
+  }
+  if (inNeg) {
+    ctx.fillStyle = 'rgba(226,75,74,0.13)';
+    ctx.fillRect(nx0, pad.t, toX(xs[xs.length-1])-nx0, cH);
+  }
+}
+
+// ─────────────────────────────────────────────
+// 辅助：H/h 区间文字描述
+// ─────────────────────────────────────────────
+const SQ2 = Math.sqrt(2), SQ2X2 = 2*Math.sqrt(2);
+function hhDesc(hh) {
+  if (hh < SQ2 - 0.05)
+    return `H/h = ${hh.toFixed(2)} < √2 ≈ 1.414：曲线单调递增，全程正刚度，无负刚度区。适合用作离合器压紧弹簧。`;
+  if (hh < SQ2 + 0.05)
+    return `H/h ≈ √2 ≈ 1.414：曲线顶部出现水平切点，刚度瞬间为零，但无负刚度区。`;
+  if (hh < SQ2X2 - 0.1)
+    return `H/h = ${hh.toFixed(2)}，处于 (√2, 2√2) 之间：峰值后出现下降段（负刚度区），H/h 越大，负刚度区越深越宽。`;
+  if (hh < SQ2X2 + 0.1)
+    return `H/h ≈ 2√2 ≈ 2.828：弹力曲线下降到零后再回升，谷底恰好触及零线，弹簧在此点发生翻转。`;
+  return `H/h = ${hh.toFixed(2)} > 2√2 ≈ 2.828：弹力曲线穿越零线，弹簧发生自锁翻转，分离后弹力反向，离合器完全失控！`;
+}
+
+function hhClass(hh) {
+  if (hh < SQ2 + 0.05) return 'ok';
+  if (hh < SQ2X2 - 0.1) return '';
+  return 'warn';
+}
+
+// ─────────────────────────────────────────────
+// Panel 1: 弹性特性曲线
+// ─────────────────────────────────────────────
+function p1Update() {
+  const hh = parseFloat(document.getElementById('p1-hh').value);
+  const rr = parseFloat(document.getElementById('p1-rr').value);
+  document.getElementById('p1-hh-v').textContent = hh.toFixed(2);
+  document.getElementById('p1-rr-v').textContent = rr.toFixed(2);
+
+  const info = document.getElementById('p1-info');
+  info.textContent = hhDesc(hh);
+  info.className = 'infobox ' + hhClass(hh);
+
+  const { xs, f1s, f2s } = buildCurves(hh, rr);
+  const maxF = Math.max(...f1s, ...f2s, 1);
+  const minF = Math.min(...f1s, ...f2s, 0);
+  const yPad = (maxF - minF) * 0.1;
+
+  const { ctx, W, H } = setupCanvas('c-curve');
+  const { toX, toY, pad, cH } = drawAxes(ctx, W, H,
+    0, xs[xs.length-1], minF - yPad, maxF + yPad * 0.5,
+    { xLabel: 'λ₁  变形量（mm）', yLabel: 'F（N）', xTicks:8, yTicks:6 }
+  );
+
+  drawNegRegion(ctx, toX, toY, pad, xs, f1s, cH);
+  drawLine(ctx, toX, toY, xs, f1s, '#378ADD', 2.5);
+  drawLine(ctx, toX, toY, xs, f2s, '#E24B4A', 1.8, [6,4]);
+
+  // 零线标注
+  if (minF < 0) {
+    const y0 = toY(0);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('F = 0', pad.l + 4, y0 - 4);
+  }
+
+  // 判断负刚度区并生成注释
+  let negStart = null, negEnd = null;
+  for (let i=1; i<f1s.length-1; i++) {
+    const s = f1s[i+1] - f1s[i-1];
+    if (s < 0 && negStart === null) negStart = xs[i];
+    if (s >= 0 && negStart !== null && negEnd === null) negEnd = xs[i];
+  }
+  const ann = document.getElementById('p1-ann');
+  if (negStart !== null) {
+    ann.textContent = `⚠ 负刚度区：λ₁ ≈ ${negStart.toFixed(1)} ~ ${(negEnd||xs[xs.length-1]).toFixed(1)} mm，此区间工作点会导致接合抖动和压紧力失稳`;
+    ann.style.color = '#a32d2d';
+  } else {
+    ann.textContent = `✓ 全程正刚度，无负刚度区，适合离合器压紧弹簧的工作区间`;
+    ann.style.color = '#27500a';
+  }
+}
+
+// ─────────────────────────────────────────────
+// Panel 2: 几何参数图解
+// ─────────────────────────────────────────────
+function p2Update() {
+  const H = parseFloat(document.getElementById('p2-H').value);
+  const h = parseFloat(document.getElementById('p2-h').value);
+  const R = parseFloat(document.getElementById('p2-R').value);
+  const r = parseFloat(document.getElementById('p2-r').value);
+  document.getElementById('p2-H-v').textContent = H.toFixed(1)+' mm';
+  document.getElementById('p2-h-v').textContent = h.toFixed(1)+' mm';
+  document.getElementById('p2-R-v').textContent = R.toFixed(0)+' mm';
+  document.getElementById('p2-r-v').textContent = r.toFixed(0)+' mm';
+
+  const hh = H / h;
+  const info = document.getElementById('p2-info');
+  info.textContent = `H/h = ${H.toFixed(1)}/${h.toFixed(1)} = ${hh.toFixed(2)}   ${hhDesc(hh)}`;
+  info.className = 'infobox ' + hhClass(hh);
+
+  const { ctx, W, H: canH } = setupCanvas('c-geom');
+  ctx.clearRect(0, 0, W, canH);
+
+  const cx = W / 2;
+  const baseY = canH * 0.72;
+  const scale = Math.min((W * 0.36) / R, 2.2);
+  const Rp = R * scale, rp = r * scale;
+  const Hp = H * scale * 5.5;  // 高度放大便于观察
+  const hp = h * scale * 5.5;
+
+  const isDark = false; // 工具固定浅色模式
+  const gray = '#888', dim = '#ddd', darkText = '#1e2a35';
+
+  // 旋转中心线（虚线）
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 0.8; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(cx - Rp - 24, baseY); ctx.lineTo(cx + Rp + 24, baseY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#aaa'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('旋转中心线', cx + Rp + 6, baseY + 4);
+
+  // 绘制碟形截面（左右对称，只画左半扇形横截面）
+  // 截面形状：外缘 R 处高度为 0（平放），内端 r 处高度为 H（抬起）
+  function drawSect(side) {
+    const s = side === 'L' ? -1 : 1;
+    const x_R = cx + s * Rp;  // 外缘 x
+    const x_r = cx + s * rp;  // 内端 x
+    const y_R_bot = baseY;     // 外缘底面（贴压盘）
+    const y_R_top = baseY - hp; // 外缘顶面
+    const y_r_bot = baseY - Hp; // 内端底面
+    const y_r_top = baseY - Hp - hp; // 内端顶面
+
+    // 填充截面
+    ctx.fillStyle = 'rgba(55,138,221,0.15)';
+    ctx.beginPath();
+    ctx.moveTo(x_R, y_R_top);
+    ctx.lineTo(x_r, y_r_top);
+    ctx.lineTo(x_r, y_r_bot);
+    ctx.lineTo(x_R, y_R_bot);
+    ctx.closePath();
+    ctx.fill();
+
+    // 描边截面
+    ctx.strokeStyle = '#378ADD'; ctx.lineWidth = 2; ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x_R, y_R_top);
+    ctx.lineTo(x_r, y_r_top);
+    ctx.lineTo(x_r, y_r_bot);
+    ctx.lineTo(x_R, y_R_bot);
+    ctx.closePath();
+    ctx.stroke();
+
+    return { x_R, x_r, y_R_bot, y_R_top, y_r_bot, y_r_top };
+  }
+
+  const L = drawSect('L');
+  const Ri = drawSect('R');
+
+  // 压盘（外缘贴合面）
+  ctx.fillStyle = '#f0f0f0';
+  ctx.fillRect(cx - Rp - 12, baseY, 2*Rp + 24, 14);
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+  ctx.strokeRect(cx - Rp - 12, baseY, 2*Rp + 24, 14);
+  ctx.fillStyle = '#888'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('压盘（外缘 R 处贴合）', cx, baseY + 10);
+
+  // ── 标注尺寸 ──
+  const annotCol = '#1e2a35', lineCol = '#bbb';
+  ctx.font = '12px sans-serif'; ctx.fillStyle = annotCol;
+
+  // R 标注（下方）
+  const yRann = baseY + 32;
+  ctx.strokeStyle = lineCol; ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.moveTo(cx, yRann); ctx.lineTo(cx + Rp, yRann); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, yRann-5); ctx.lineTo(cx, yRann+5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+Rp, yRann-5); ctx.lineTo(cx+Rp, yRann+5); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillText(`R = ${R.toFixed(0)} mm`, cx + Rp/2, yRann + 14);
+
+  // r 标注（下方）
+  const yRann2 = baseY + 52;
+  ctx.beginPath(); ctx.moveTo(cx, yRann2); ctx.lineTo(cx + rp, yRann2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+rp, yRann2-5); ctx.lineTo(cx+rp, yRann2+5); ctx.stroke();
+  ctx.fillStyle = '#639922';
+  ctx.fillText(`r = ${r.toFixed(0)} mm`, cx + rp/2, yRann2 + 14);
+
+  // H 标注（右侧，内端高度）
+  const xHann = cx + Rp + 16;
+  ctx.strokeStyle = '#E24B4A'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(Ri.x_r, Ri.y_r_bot); ctx.lineTo(xHann+18, Ri.y_r_bot); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(Ri.x_r, Ri.y_R_bot); ctx.lineTo(xHann+18, Ri.y_R_bot); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(xHann+24, Ri.y_r_bot); ctx.lineTo(xHann+24, Ri.y_R_bot); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(xHann+20, Ri.y_r_bot); ctx.lineTo(xHann+28, Ri.y_r_bot); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(xHann+20, Ri.y_R_bot); ctx.lineTo(xHann+28, Ri.y_R_bot); ctx.stroke();
+  ctx.fillStyle = '#E24B4A'; ctx.textAlign = 'left'; ctx.font = '12px sans-serif';
+  ctx.fillText(`H = ${H.toFixed(1)} mm`, xHann + 30, (Ri.y_r_bot + Ri.y_R_bot)/2 + 4);
+  ctx.fillText('（内锥高度）', xHann + 30, (Ri.y_r_bot + Ri.y_R_bot)/2 + 18);
+
+  // h 标注（右侧，板厚）
+  const xhann = cx + Rp + 16;
+  const yhMid = (Ri.y_R_top + Ri.y_R_bot) / 2;
+  ctx.strokeStyle = '#1b6b80'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(Ri.x_R + 4, Ri.y_R_top); ctx.lineTo(xhann - 8, Ri.y_R_top); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(Ri.x_R + 4, Ri.y_R_bot); ctx.lineTo(xhann - 8, Ri.y_R_bot); ctx.stroke();
+  // 这个标注放左侧避免重叠
+  ctx.strokeStyle = '#1b6b80';
+  ctx.beginPath(); ctx.moveTo(L.x_R - 4, L.y_R_top); ctx.lineTo(cx - Rp - 30, L.y_R_top); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(L.x_R - 4, L.y_R_bot); ctx.lineTo(cx - Rp - 30, L.y_R_bot); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - Rp - 24, L.y_R_top); ctx.lineTo(cx - Rp - 24, L.y_R_bot); ctx.stroke();
+  ctx.fillStyle = '#1b6b80'; ctx.textAlign = 'right';
+  ctx.fillText(`h = ${h.toFixed(1)} mm（板厚）`, cx - Rp - 30, (L.y_R_top + L.y_R_bot)/2 + 4);
+
+  // H/h 数值和临界线
+  const critLabel = hh < SQ2 ? '< √2（全正刚度）' : hh < SQ2X2 ? `∈ (√2, 2√2)（有负刚度区）` : '> 2√2（弹力穿零！）';
+  ctx.fillStyle = hh<SQ2 ? '#27500a' : hh<SQ2X2 ? '#854f0b' : '#791f1f';
+  ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`H/h = ${hh.toFixed(2)}  ${critLabel}`, cx, 22);
+
+  // √2 和 2√2 临界标线（在右侧小图例区）
+  const legX = W - 10, legY = 30;
+  ctx.font = '11px sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = '#888';
+  ctx.fillText(`√2 ≈ 1.414  （负刚度区下界）`, legX, legY);
+  ctx.fillText(`2√2 ≈ 2.828（弹力过零点）`, legX, legY + 16);
+}
+
+// ─────────────────────────────────────────────
+// Panel 3: 压紧与分离受力（全参数版）
+// ─────────────────────────────────────────────
+function p3Update() {
+  // 读取所有输入参数
+  const H  = parseFloat(document.getElementById('p3-H').value);
+  const h  = parseFloat(document.getElementById('p3-h').value);
+  const r  = parseFloat(document.getElementById('p3-r').value);
+  const R  = parseFloat(document.getElementById('p3-R').value);
+  const R1 = parseFloat(document.getElementById('p3-R1').value);
+  const r1 = parseFloat(document.getElementById('p3-r1').value);
+  const rf = parseFloat(document.getElementById('p3-rf').value);
+  const r0 = parseFloat(document.getElementById('p3-r0').value);
+  const lam1 = parseFloat(document.getElementById('p3-lam').value);
+  const state = document.getElementById('p3-state').value;
+
+  // 更新显示值
+  document.getElementById('p3-H-v').textContent  = H.toFixed(1)+' mm';
+  document.getElementById('p3-h-v').textContent  = h.toFixed(1)+' mm';
+  document.getElementById('p3-r-v').textContent  = r.toFixed(0)+' mm';
+  document.getElementById('p3-R-v').textContent  = R.toFixed(0)+' mm';
+  document.getElementById('p3-R1-v').textContent = R1.toFixed(0)+' mm';
+  document.getElementById('p3-r1-v').textContent = r1.toFixed(0)+' mm';
+  document.getElementById('p3-rf-v').textContent = rf.toFixed(0)+' mm';
+  document.getElementById('p3-r0-v').textContent = r0.toFixed(0)+' mm';
+  document.getElementById('p3-lam-v').textContent = lam1.toFixed(1)+' mm';
+
+  // ── 参数合法性检查 ──
+  const warnEl = document.getElementById('p3-param-warn');
+  const warns = [];
+  if (R <= r)   warns.push('⚠ 需要 R > r（大端半径须大于小端半径）');
+  if (R1 >= R)  warns.push('⚠ 需要 R₁ < R（支承环大径须在碟簧范围内）');
+  if (r1 <= r)  warns.push('⚠ 需要 r₁ > r（支承环小径须大于碟簧小端）');
+  if (r1 >= R1) warns.push('⚠ 需要 r₁ < R₁（支承环内外径关系）');
+  if (rf >= r1) warns.push('⚠ 需要 r_f < r₁（分离轴承半径须小于支承环小径）');
+  if (rf <= r0) warns.push('⚠ 建议 r_f > r₀（分离轴承半径须大于分离指根部）');
+  if (h <= 0)   warns.push('⚠ 板厚 h 须大于 0');
+  if (H <= 0)   warns.push('⚠ 内锥高度 H 须大于 0');
+
+  if (warns.length > 0) {
+    warnEl.innerHTML = warns.join('<br>');
+    warnEl.style.display = 'block';
+  } else {
+    warnEl.style.display = 'none';
+  }
+
+  // ── 核心计算 ──
+  // 式(2-21): F₁（压盘侧，支承环处）
+  const f1v = (warns.length === 0) ? calcF1(lam1, H, h, R, r, R1, r1) : 0;
+
+  // 式(2-22): λ₂ = (r₁−r_f)/(R₁−r₁) · λ₁  ← 运动关系
+  const outerArm = R1 - r1;  // 外侧力臂（压盘端）
+  const innerArm = r1 - rf;  // 内侧力臂（分离指端）
+  const motionRatio = (warns.length === 0) ? innerArm / outerArm : 0;  // λ₂/λ₁
+  const forceRatio  = (warns.length === 0) ? outerArm / innerArm : 0;  // F₂/F₁（正确：大/小）
+  const lam2 = lam1 * motionRatio;
+
+  // 式(2-24): F₂（分离轴承侧）
+  const f2v = (warns.length === 0) ? calcF2(lam2, H, h, R, r, r1, rf) : 0;
+
+  // 用杠杆比校验（两种算法应接近）
+  const f2_lever = f1v * forceRatio;  // 杠杆公式直接换算
+
+  // 更新杠杆比显示及力大小说明
+  const forceNote = document.getElementById('p3-force-note');
+  if (outerArm > innerArm) {
+    forceNote.textContent = '（分离力 > 压紧力，因外臂长于内臂：R₁−r₁ = ' + outerArm.toFixed(0) + ' mm > r₁−r_f = ' + innerArm.toFixed(0) + ' mm）';
+    forceNote.style.color = '#a32d2d';
+  } else if (outerArm < innerArm) {
+    forceNote.textContent = '（分离力 < 压紧力，因内臂长于外臂：r₁−r_f = ' + innerArm.toFixed(0) + ' mm > R₁−r₁ = ' + outerArm.toFixed(0) + ' mm）';
+    forceNote.style.color = '#3b6d11';
+  } else {
+    forceNote.textContent = '（两臂等长，分离力 = 压紧力）';
+    forceNote.style.color = '#888';
+  }
+  document.getElementById('p3-arm-outer').textContent = outerArm.toFixed(1);
+  document.getElementById('p3-arm-inner').textContent = innerArm.toFixed(1);
+  document.getElementById('p3-ratio-lam').textContent = motionRatio.toFixed(4) + '  （λ₂ = '+lam2.toFixed(2)+' mm）';
+  document.getElementById('p3-ratio-f').textContent   = forceRatio.toFixed(4)  + '  （F₂ = '+f2_lever.toFixed(0)+' N）';
+
+  // ── 信息框 ──
+  const info = document.getElementById('p3-info');
+  const hh = H / h;
+  if (state === 'engage') {
+    info.innerHTML = `<b>接合状态</b>：碟簧通过支承环将压盘向下压紧。<br>`+
+      `λ₁ = ${lam1.toFixed(2)} mm &nbsp;→&nbsp; <b>F₁ = ${Math.max(0,f1v).toFixed(0)} N</b>&nbsp;（压紧力，式2-21）<br>`+
+      `H/h = ${hh.toFixed(2)}；H = ${H.toFixed(1)} mm，h = ${h.toFixed(1)} mm`;
+    info.className = 'infobox ok';
+  } else {
+    info.innerHTML = `<b>分离状态</b>：分离轴承推分离指，以支承环为支点撬起压盘。<br>`+
+      `λ₂ = <b>${lam2.toFixed(3)} mm</b>（式2-22，= λ₁ × (r₁−r_f)/(R₁−r₁) = ${lam1.toFixed(2)}×${motionRatio.toFixed(3)}）<br>`+
+      `<b>F₂ = ${Math.max(0,f2_lever).toFixed(0)} N</b>（式2-23，= F₁ × (R₁−r₁)/(r₁−r_f) = ${Math.max(0,f1v).toFixed(0)}×${forceRatio.toFixed(3)}）`;
+    info.className = 'infobox';
+  }
+
+  // ── 数据表 ──
+  const tbl = document.getElementById('p3-table');
+  const rows = [
+    ['H（内锥高度）', H.toFixed(2)+' mm'],
+    ['h（板厚）', h.toFixed(2)+' mm'],
+    ['H/h', hh.toFixed(3)],
+    ['R（大端半径）', R.toFixed(0)+' mm'],
+    ['r（小端半径）', r.toFixed(0)+' mm'],
+    ['R₁（支承环大径）', R1.toFixed(0)+' mm'],
+    ['r₁（支承环小径）', r1.toFixed(0)+' mm'],
+    ['r_f（分离轴承半径）', rf.toFixed(0)+' mm'],
+    ['─────', '─────'],
+    ['λ₁（压盘变形量）', lam1.toFixed(2)+' mm'],
+    ['F₁（压盘压紧力，式2-21）', Math.max(0,f1v).toFixed(0)+' N'],
+    ['外侧臂 R₁−r₁', outerArm.toFixed(1)+' mm'],
+    ['内侧臂 r₁−r_f', innerArm.toFixed(1)+' mm'],
+    ['运动比 λ₂/λ₁ = (r₁−r_f)/(R₁−r₁)', motionRatio.toFixed(4)],
+    ['λ₂（分离指行程，式2-22）', lam2.toFixed(3)+' mm'],
+    ['力放大比 F₂/F₁ = (R₁−r₁)/(r₁−r_f)', forceRatio.toFixed(4)],
+    ['F₂（踏板分离力，式2-23）', Math.max(0,f2_lever).toFixed(0)+' N'],
+    ['F₂（式2-24直接计算）', Math.max(0,f2v).toFixed(0)+' N'],
+  ];
+  tbl.innerHTML = '<tr><th>参数</th><th>数值</th></tr>' +
+    rows.map(([k,v]) => k==='─────'
+      ? `<tr><td colspan="2" style="border-bottom:1px solid #dde3ec; padding:2px 0;"></td></tr>`
+      : `<tr><td>${k}</td><td style="font-weight:500;color:#185fa5">${v}</td></tr>`
+    ).join('');
+
+  // ── 绘制受力示意图 ──
+  const { ctx, W, H: canH } = setupCanvas('c-force');
+  ctx.clearRect(0, 0, W, canH);
+
+  const cx = W / 2;
+  const scale = Math.min(W * 0.0028, 1.9);
+  const Rp = R * scale, rp_px = r * scale;
+  const R1p = R1 * scale, r1p = r1 * scale, rfp = rf * scale, r0p = r0 * scale;
+  const hp_vis = Math.max(h * scale * 4.0, 6);
+  const Hp_vis = Math.max(H * scale * 4.0, 8);
+
+  // 当前变形：λ₁ 时内锥高度减小（大端贴压盘，内端抬起）
+  const Hdef = Math.max(0, H - lam1 * (R - r) / (R1 - r1)) * scale * 4.0;
+
+  const baseY = canH * 0.70;
+
+  // 压盘
+  ctx.fillStyle = '#e8edf5'; ctx.strokeStyle = '#99aabb'; ctx.lineWidth = 1;
+  ctx.fillRect(cx - R1p - 12, baseY, 2*R1p + 24, 15);
+  ctx.strokeRect(cx - R1p - 12, baseY, 2*R1p + 24, 15);
+  ctx.fillStyle = '#546070'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('压 盘', cx, baseY + 11);
+
+  // 摩擦片
+  ctx.fillStyle = '#c4d8e8'; ctx.strokeStyle = '#99a'; ctx.lineWidth = 0.7;
+  ctx.fillRect(cx - R1p - 12, baseY + 17, 2*R1p + 24, 8);
+  ctx.strokeRect(cx - R1p - 12, baseY + 17, 2*R1p + 24, 8);
+  ctx.fillStyle = '#546070'; ctx.font = '10px sans-serif';
+  ctx.fillText('摩擦片', cx, baseY + 24);
+
+  const supY = baseY - hp_vis - 4;
+
+  // 碟形弹簧截面（考虑当前变形量）
+  [-1, 1].forEach(s => {
+    const xR1 = cx + s * R1p;
+    const xr1 = cx + s * r1p;
+    const xrf = cx + s * rfp;
+    const xr0 = cx + s * r0p;
+    const xr  = cx + s * rp_px;
+
+    // 填充碟簧截面（从R₁到r，两层）
+    ctx.fillStyle = 'rgba(55,138,221,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(xR1, supY);
+    ctx.lineTo(xr1, supY - Hdef);
+    ctx.lineTo(xrf, supY - Hdef - 16);
+    ctx.lineTo(xrf, supY - Hdef - 16 - hp_vis);
+    ctx.lineTo(xr1, supY - Hdef - hp_vis);
+    ctx.lineTo(xR1, supY - hp_vis);
+    ctx.closePath();
+    ctx.fill();
+
+    // 碟簧轮廓线
+    ctx.strokeStyle = '#378ADD'; ctx.lineWidth = 2.0;
+    ctx.beginPath();
+    ctx.moveTo(xR1, supY);
+    ctx.lineTo(xr1, supY - Hdef);
+    ctx.lineTo(xrf, supY - Hdef - 16);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(xR1, supY - hp_vis);
+    ctx.lineTo(xr1, supY - Hdef - hp_vis);
+    ctx.lineTo(xrf, supY - Hdef - 16 - hp_vis);
+    ctx.stroke();
+  });
+
+  // 支承环圆点（支点）
+  [[cx - R1p, supY],[cx + R1p, supY]].forEach(([x, y]) => {
+    ctx.fillStyle = '#EF9F27';
+    ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#c07800'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI*2); ctx.stroke();
+  });
+
+  // 支承环标注
+  ctx.fillStyle = '#854f0b'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('支承环（支点）', cx - R1p, supY - 10);
+  ctx.fillText(`R₁=${R1} / r₁=${r1} mm`, cx + R1p + 2, supY - 10);
+
+  // 力箭头绘制函数
+  const drawArrow = (x1, y1, x2, y2, col, label, side) => {
+    const angle = Math.atan2(y2-y1, x2-x1);
+    const len = Math.hypot(x2-x1, y2-y1);
+    if (len < 2) return;
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 11*Math.cos(angle-0.36), y2 - 11*Math.sin(angle-0.36));
+    ctx.lineTo(x2 - 11*Math.cos(angle+0.36), y2 - 11*Math.sin(angle+0.36));
+    ctx.closePath(); ctx.fill();
+    if (label) {
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = (side||'right') === 'right' ? 'left' : 'right';
+      ctx.fillText(label, (x1+x2)/2 + ((side||'right')==='right'?10:-10), (y1+y2)/2 + 4);
+    }
+  };
+
+  // 标注尺寸线（臂长）
+  const armY = supY + 28;
+  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 0.8; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(cx - R1p, armY); ctx.lineTo(cx + rfp, armY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#888'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  // 外臂
+  ctx.fillText(`外臂 R₁−r₁=${outerArm.toFixed(0)}mm`, cx - (R1p+r1p)/2, armY+14);
+  // 内臂
+  ctx.fillText(`内臂 r₁−r_f=${innerArm.toFixed(0)}mm`, cx + (r1p+rfp)/2, armY+14);
+  // 分隔线
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 0.7; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(cx - r1p, armY-6); ctx.lineTo(cx - r1p, armY+20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + r1p, armY-6); ctx.lineTo(cx + r1p, armY+20); ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (state === 'engage') {
+    // F₁ 向下压压盘
+    const arLen = Math.min(Math.max(Math.abs(f1v) / 18, 8), 55);
+    if (f1v > 10) {
+      [-1,1].forEach(s => {
+        const x = cx + s * R1p;
+        drawArrow(x, supY+7, x, supY+7+arLen, '#378ADD',
+          s > 0 ? `F₁=${f1v.toFixed(0)}N` : null, s > 0 ? 'right' : 'left');
+      });
+    }
+    ctx.fillStyle = '#185fa5'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`F₁ = ${f1v.toFixed(0)} N  经支承环向下压紧压盘（式2-21）`, cx, canH - 12);
+  } else {
+    // F₂ 推分离指（向上）
+    const tipX = cx, tipY = supY - Hdef - 20;
+    const arLen2 = Math.min(Math.max(Math.abs(f2_lever) / 18, 8), 45);
+    if (f2_lever > 10) {
+      drawArrow(tipX, tipY, tipX, tipY - arLen2, '#E24B4A', `F₂=${f2_lever.toFixed(0)}N`);
+    }
+    // 压盘被抬起
+    if (f1v > 5) {
+      const liftLen = Math.min(f1v / 25, 32);
+      [-1,1].forEach(s => {
+        const x = cx + s * R1p;
+        drawArrow(x, supY+4, x, supY+4-liftLen, '#639922');
+      });
+      ctx.fillStyle = '#27500a'; ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText('↑ 压盘提起', cx - R1p - 4, supY - 6);
+    }
+    ctx.fillStyle = '#a32d2d'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(`F₂ = ${f2_lever.toFixed(0)} N  推分离指 → 以支承环为支点 → 压盘提起（式2-23）`, cx, canH - 12);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Panel 4: 刚度分析
+// ─────────────────────────────────────────────
+function p4Update() {
+  const hh = parseFloat(document.getElementById('p4-hh').value);
+  document.getElementById('p4-hh-v').textContent = hh.toFixed(2);
+
+  const info = document.getElementById('p4-info');
+  info.textContent = hhDesc(hh);
+  info.className = 'infobox ' + hhClass(hh);
+
+  const { xs, f1s } = buildCurves(hh, 1.6);
+
+  // 数值微分求刚度
+  const ks = [];
+  for (let i=0; i<f1s.length; i++) {
+    if (i===0) ks.push((f1s[1]-f1s[0])/(xs[1]-xs[0]));
+    else if (i===f1s.length-1) ks.push((f1s[i]-f1s[i-1])/(xs[i]-xs[i-1]));
+    else ks.push((f1s[i+1]-f1s[i-1])/(xs[i+1]-xs[i-1]));
+  }
+
+  const maxF = Math.max(...f1s, 1);
+  const minF = Math.min(...f1s, 0);
+  const maxK = Math.max(...ks, 1);
+  const minK = Math.min(...ks, 0);
+
+  const { ctx, W, H: canH } = setupCanvas('c-stiff');
+  const { toX, toY, pad, cH } = drawAxes(ctx, W, canH,
+    0, xs[xs.length-1],
+    Math.min(minF, minK*12) * 1.1,
+    Math.max(maxF, maxK*12) * 1.05,
+    { xLabel: 'λ₁（mm）', yLabel: 'F（N）', xTicks:8, yTicks:6 }
+  );
+
+  // 负刚度区背景
+  for (let i=0; i<ks.length-1; i++) {
+    if (ks[i] < 0) {
+      const xL = toX(xs[i]), xR = toX(xs[i+1]);
+      ctx.fillStyle = 'rgba(226,75,74,0.13)';
+      ctx.fillRect(xL, pad.t, xR-xL, cH);
+    }
+  }
+
+  // 刚度曲线（缩放到 F 轴单位：N/mm × 12 ≈ N 量级显示）
+  const kScale = 12;
+  drawLine(ctx, toX, toY, xs, f1s, '#378ADD', 2.5);
+  drawLine(ctx, toX, toY, xs, ks.map(k=>k*kScale), '#639922', 1.8, [5,4]);
+
+  // 右侧 y2 轴标签（刚度）
+  ctx.save();
+  ctx.translate(W - 8, pad.t + cH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillStyle = '#639922'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`k = dF/dλ（N/mm）× ${kScale}`, 0, 0);
+  ctx.restore();
+
+  // 零刚度线标注
+  const y0k = toY(0);
+  ctx.strokeStyle = '#639922'; ctx.lineWidth = 0.8; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(pad.l, y0k); ctx.lineTo(pad.l + cW_ref || W - pad.l - 20, y0k); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#639922'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('k = 0', pad.l + (W - pad.l - 20) * 0.98, y0k - 3);
+
+  const hasNeg = ks.some(v => v < 0);
+  const ann = document.getElementById('p4-ann');
+  if (hasNeg) {
+    ann.textContent = '绿色刚度曲线在零线以下的区段（红色背景）= 负刚度区，此处 F 随 λ 增大反而减小';
+    ann.style.color = '#a32d2d';
+  } else {
+    ann.textContent = '绿色刚度曲线始终在零线以上，全程正刚度，适合离合器压紧弹簧工作区间';
+    ann.style.color = '#27500a';
+  }
+}
+
+// 修正刚度图右侧零线宽度
+let cW_ref = 0;
+
+// ─────────────────────────────────────────────
+// Tab 切换
+// ─────────────────────────────────────────────
+function switchTab(name) {
+  const names = ['curve','geom','forces','stiffness'];
+  document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', names[i]===name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  setTimeout(() => {
+    if (name==='curve') p1Update();
+    else if (name==='geom') p2Update();
+    else if (name==='forces') p3Update();
+    else p4Update();
+  }, 30);
+}
+
+// ─────────────────────────────────────────────
+// 初始化 + 响应式重绘
+// ─────────────────────────────────────────────
+window.addEventListener('load', () => {
+  p1Update();
+});
+
+// 防抖处理resize事件，优化移动端性能
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const active = document.querySelector('.panel.active');
+    if (!active) return;
+    const id = active.id.replace('panel-', '');
+    if (id === 'curve') p1Update();
+    else if (id === 'geom') p2Update();
+    else if (id === 'forces') p3Update();
+    else p4Update();
+  }, 150);
+});
+
+// 阻止移动端双击缩放
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+if (e.key === 'F12' || 
+(e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+(e.ctrlKey && e.key === 'U') ||
+(e.ctrlKey && e.key === 'S')) {
+e.preventDefault();
+return false;
+}
+});
+
+</script>
+<script>
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('keydown', e => {
+    if (e.key === 'F12' || 
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.ctrlKey && e.key === 'U') ||
+        (e.ctrlKey && e.key === 'S')) {
+      e.preventDefault();
+      return false;
+    }
+  });
+</script>
+
+</body>
+</html>
